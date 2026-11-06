@@ -1,35 +1,75 @@
-
 import 'package:flutter/material.dart';
 
 void main() {
   runApp(const MyApp());
 }
 
-const Color whatsappGreen = Color(0xFF075E54);
-const Color lightGreen = Color(0xFF25D366);
+// ============================================================================
+// FEATURE 1: DYNAMIC THEMING & BRAND COLOR PALETTE
+// Supports Light & Dark mode seamlessly with a single toggle
+// ============================================================================
+final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.system);
+
+class AppColors {
+  static const Color primary = Color(0xFF6366F1); // Indigo
+  static const Color primaryDark = Color(0xFF4F46E5);
+  static const Color cyan = Color(0xFF0EA5E9);
+  static const Color emerald = Color(0xFF10B981);
+  static const Color bgLight = Color(0xFFF8FAFC);
+  static const Color bgDark = Color(0xFF0F172A);
+  static const Color cardDark = Color(0xFF1E293B);
+  static const Color bubbleLight = Color(0xFFF1F5F9);
+  static const Color bubbleDark = Color(0xFF334155);
+}
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'WhatsApp Clone',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: whatsappGreen,
-        ),
-        scaffoldBackgroundColor: Colors.white,
-        useMaterial3: true,
-      ),
-      home: const HomePage(),
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: themeNotifier,
+      builder: (_, ThemeMode currentMode, child) {
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          title: 'PulseChat',
+          themeMode: currentMode,
+          theme: ThemeData(
+            useMaterial3: true,
+            colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primary),
+            scaffoldBackgroundColor: AppColors.bgLight,
+            appBarTheme: const AppBarTheme(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              elevation: 0,
+            ),
+            cardColor: Colors.white,
+          ),
+          darkTheme: ThemeData(
+            useMaterial3: true,
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: AppColors.primary,
+              brightness: Brightness.dark,
+            ),
+            scaffoldBackgroundColor: AppColors.bgDark,
+            appBarTheme: const AppBarTheme(
+              backgroundColor: AppColors.cardDark,
+              foregroundColor: Colors.white,
+              elevation: 0,
+            ),
+            cardColor: AppColors.cardDark,
+          ),
+          home: const HomePage(),
+        );
+      },
     );
   }
 }
 
-// HOME SCREEN
-
+// ============================================================================
+// FEATURE 2: MAIN HOME CONTAINER & BOTTOM NAVIGATION
+// Manages primary app sections: Chats, Updates, Communities, and Calls
+// ============================================================================
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -40,13 +80,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int currentIndex = 0;
 
-  final List<String> titles = [
-    'WhatsApp',
-    'Updates',
-    'Communities',
-    'Calls',
-  ];
-
+  final List<String> titles = ['PulseChat', 'Updates', 'Communities', 'Calls'];
   final List<Widget> pages = const [
     ChatsPage(),
     UpdatesPage(),
@@ -56,97 +90,95 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return DefaultTabController(
       length: 3,
       child: Scaffold(
         appBar: AppBar(
-          backgroundColor: whatsappGreen,
-          foregroundColor: Colors.white,
           title: Text(
             titles[currentIndex],
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-            ),
+            style: const TextStyle(fontWeight: FontWeight.bold),
           ),
           actions: [
+            // FEATURE: Light / Dark Mode Quick Toggle
+            IconButton(
+              icon: Icon(isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined),
+              tooltip: 'Toggle Light/Dark Theme',
+              onPressed: () {
+                themeNotifier.value = isDark ? ThemeMode.light : ThemeMode.dark;
+              },
+            ),
             IconButton(
               icon: const Icon(Icons.camera_alt_outlined),
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Camera selected')),
-                );
-              },
+              onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Camera Selected')),
+              ),
             ),
+            // FEATURE: Contact & Chat Search
             IconButton(
               icon: const Icon(Icons.search),
-              onPressed: () {
-                showSearch(
-                  context: context,
-                  delegate: ChatSearchDelegate(),
-                );
-              },
+              onPressed: () => showSearch(
+                context: context,
+                delegate: ChatSearchDelegate(),
+              ),
             ),
           ],
+          // FEATURE 3: CHAT SUB-TAB FILTERING (ALL, UNREAD, FAVORITES)
           bottom: currentIndex == 0
               ? const TabBar(
-            indicatorColor: Colors.white,
-            labelColor: Colors.white,
-            unselectedLabelColor: Colors.white70,
-            tabs: [
-              Tab(text: 'All'),
-              Tab(text: 'Unread'),
-              Tab(text: 'Favorites'),
-            ],
-          )
+                  indicatorColor: Colors.white,
+                  indicatorWeight: 3,
+                  labelColor: Colors.white,
+                  unselectedLabelColor: Colors.white70,
+                  labelStyle: TextStyle(fontWeight: FontWeight.bold),
+                  tabs: [
+                    Tab(text: 'All'),
+                    Tab(text: 'Unread'),
+                    Tab(text: 'Favorites'),
+                  ],
+                )
               : null,
         ),
-
         drawer: const AppDrawer(),
-
-        body: IndexedStack(
-          index: currentIndex,
-          children: pages,
-        ),
-
-        floatingActionButton: FloatingActionButton(
-          backgroundColor: lightGreen,
+        body: IndexedStack(index: currentIndex, children: pages),
+        // FEATURE: NEW CHAT FLOATING ACTION BUTTON
+        floatingActionButton: FloatingActionButton.extended(
+          backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const NewChatPage(),
-              ),
-            );
-          },
-          child: const Icon(Icons.message),
+          onPressed: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const NewChatPage()),
+          ),
+          icon: const Icon(Icons.chat_bubble_rounded),
+          label: const Text('New Chat', style: TextStyle(fontWeight: FontWeight.bold)),
         ),
-
         bottomNavigationBar: BottomNavigationBar(
           currentIndex: currentIndex,
           type: BottomNavigationBarType.fixed,
-          selectedItemColor: whatsappGreen,
-          unselectedItemColor: Colors.grey,
-          onTap: (index) {
-            setState(() {
-              currentIndex = index;
-            });
-          },
+          selectedItemColor: AppColors.primary,
+          unselectedItemColor: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+          backgroundColor: isDark ? AppColors.cardDark : Colors.white,
+          onTap: (index) => setState(() => currentIndex = index),
           items: const [
             BottomNavigationBarItem(
-              icon: Icon(Icons.chat),
+              icon: Icon(Icons.chat_bubble_outline_rounded),
+              activeIcon: Icon(Icons.chat_bubble_rounded),
               label: 'Chats',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.circle_outlined),
+              icon: Icon(Icons.donut_large_outlined),
+              activeIcon: Icon(Icons.donut_large_rounded),
               label: 'Updates',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.groups),
+              icon: Icon(Icons.groups_outlined),
+              activeIcon: Icon(Icons.groups_rounded),
               label: 'Communities',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.call),
+              icon: Icon(Icons.phone_outlined),
+              activeIcon: Icon(Icons.phone_rounded),
               label: 'Calls',
             ),
           ],
@@ -156,8 +188,9 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-// SAMPLE CHAT DATA
-
+// ============================================================================
+// DATA MODEL & SAMPLE DATA
+// ============================================================================
 class ChatUser {
   final String name;
   final String message;
@@ -181,55 +214,92 @@ class ChatUser {
 const List<ChatUser> chatUsers = [
   ChatUser(
     name: 'Ali Ahmed',
-    message: 'Hey! How are you?',
+    message: 'Hey! How are you doing today?',
     time: '2:30 PM',
     initials: 'AA',
-    color: Colors.blue,
+    color: Color(0xFF3B82F6),
     unread: 2,
     favorite: true,
   ),
   ChatUser(
     name: 'Usman Afzal',
-    message: 'Project complete?',
+    message: 'Project status looks awesome!',
     time: '1:45 PM',
     initials: 'UA',
-    color: Colors.orange,
+    color: Color(0xFFF97316),
     unread: 1,
     favorite: true,
   ),
   ChatUser(
     name: 'Hamza Khan',
-    message: 'Send me the assignment.',
+    message: 'Send me the assignment files.',
     time: '12:20 PM',
     initials: 'HK',
-    color: Colors.purple,
+    color: Color(0xFFA855F7),
   ),
   ChatUser(
     name: 'Ahmed Raza',
-    message: 'Thank you!',
+    message: 'Thank you so much!',
     time: '11:10 AM',
     initials: 'AR',
-    color: Colors.teal,
+    color: Color(0xFF14B8A6),
   ),
   ChatUser(
     name: 'University Group',
-    message: 'Tomorrow is our presentation.',
+    message: 'Tomorrow is our project presentation.',
     time: 'Yesterday',
     initials: 'UG',
-    color: Colors.green,
+    color: Color(0xFF10B981),
     unread: 3,
   ),
   ChatUser(
     name: 'Bilal Hassan',
-    message: 'Call me when free.',
+    message: 'Call me when you are free.',
     time: 'Yesterday',
     initials: 'BH',
-    color: Colors.red,
+    color: Color(0xFFEF4444),
   ),
 ];
 
-// CHATS SCREEN WITH TABS
+// ============================================================================
+// REUSABLE EASY HELPER WIDGET (SHORT & CLEAN CODE)
+// ============================================================================
+class AppCardTile extends StatelessWidget {
+  final Widget leading;
+  final String title;
+  final Widget? subtitle;
+  final Widget? trailing;
+  final VoidCallback? onTap;
 
+  const AppCardTile({
+    super.key,
+    required this.leading,
+    required this.title,
+    this.subtitle,
+    this.trailing,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: ListTile(
+        leading: leading,
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+        subtitle: subtitle,
+        trailing: trailing,
+        onTap: onTap,
+      ),
+    );
+  }
+}
+
+// ============================================================================
+// FEATURE 3: CHATS PAGE WITH TAB FILTERING
+// Filter lists into: All, Unread, and Favorites
+// ============================================================================
 class ChatsPage extends StatelessWidget {
   const ChatsPage({super.key});
 
@@ -237,93 +307,96 @@ class ChatsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return TabBarView(
       children: [
-        buildChatList(context, chatUsers),
-        buildChatList(
-          context,
-          chatUsers.where((user) => user.unread > 0).toList(),
-        ),
-        buildChatList(
-          context,
-          chatUsers.where((user) => user.favorite).toList(),
-        ),
+        _buildList(context, chatUsers),
+        _buildList(context, chatUsers.where((u) => u.unread > 0).toList()),
+        _buildList(context, chatUsers.where((u) => u.favorite).toList()),
       ],
     );
   }
 
-  Widget buildChatList(
-      BuildContext context,
-      List<ChatUser> users,
-      ) {
+  Widget _buildList(BuildContext context, List<ChatUser> users) {
     return ListView(
+      padding: const EdgeInsets.all(12),
       children: [
-        ListTile(
-          leading: const CircleAvatar(
-            backgroundColor: whatsappGreen,
-            child: Icon(Icons.archive, color: Colors.white),
+        // FEATURE 4: ARCHIVED CHATS
+        AppCardTile(
+          leading: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withAlpha(25),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(Icons.archive_rounded, color: AppColors.primary, size: 20),
           ),
-          title: const Text('Archived'),
+          title: 'Archived Chats',
+          trailing: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withAlpha(25),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Text('0', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+          ),
           onTap: () {},
         ),
         ...users.map(
-              (user) => ListTile(
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 5,
-            ),
-            leading: CircleAvatar(
-              radius: 27,
-              backgroundColor: user.color,
-              child: Text(
-                user.initials,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
+          (user) => AppCardTile(
+            leading: Stack(
+              children: [
+                CircleAvatar(
+                  radius: 24,
+                  backgroundColor: user.color,
+                  child: Text(
+                    user.initials,
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  ),
                 ),
-              ),
+                Positioned(
+                  bottom: 0,
+                  right: 0,
+                  child: Container(
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: AppColors.emerald,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2),
+                    ),
+                  ),
+                ),
+              ],
             ),
-            title: Text(
-              user.name,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            subtitle: Text(
-              user.message,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
+            title: user.name,
+            subtitle: Text(user.message, maxLines: 1, overflow: TextOverflow.ellipsis),
             trailing: Column(
               mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
                   user.time,
                   style: TextStyle(
-                    fontSize: 12,
-                    color: user.unread > 0
-                        ? lightGreen
-                        : Colors.grey,
+                    fontSize: 11,
+                    fontWeight: user.unread > 0 ? FontWeight.bold : FontWeight.normal,
+                    color: user.unread > 0 ? AppColors.primary : Colors.grey,
                   ),
                 ),
-                if (user.unread > 0)
+                if (user.unread > 0) ...[
+                  const SizedBox(height: 4),
                   CircleAvatar(
-                    radius: 10,
-                    backgroundColor: lightGreen,
+                    radius: 9,
+                    backgroundColor: AppColors.primary,
                     child: Text(
                       '${user.unread}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 11,
-                      ),
+                      style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
                     ),
                   ),
+                ],
               ],
             ),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => ChatScreen(user: user),
-                ),
-              );
-            },
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => ChatScreen(user: user)),
+            ),
           ),
         ),
       ],
@@ -331,11 +404,12 @@ class ChatsPage extends StatelessWidget {
   }
 }
 
-// CHAT CONVERSATION SCREEN
-
+// ============================================================================
+// FEATURE 5: CHAT CONVERSATION SCREEN & REAL-TIME MESSAGING
+// Allows viewing active conversation & sending new text messages
+// ============================================================================
 class ChatScreen extends StatefulWidget {
   final ChatUser user;
-
   const ChatScreen({super.key, required this.user});
 
   @override
@@ -343,157 +417,135 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen> {
-  final TextEditingController messageController =
-  TextEditingController();
-
+  final TextEditingController controller = TextEditingController();
   final List<String> messages = [
-    'Hi! How are you?',
-    'I am fine. What about you?',
-    'I am good, thank you!',
+    'Hi! How are you doing today?',
+    'I am doing great! Working on the app.',
+    'That sounds fantastic!',
   ];
 
+  // FEATURE: Send message state handler
   void sendMessage() {
-    String message = messageController.text.trim();
-
-    if (message.isNotEmpty) {
-      setState(() {
-        messages.add(message);
-      });
-
-      messageController.clear();
+    final text = controller.text.trim();
+    if (text.isNotEmpty) {
+      setState(() => messages.add(text));
+      controller.clear();
     }
   }
 
   @override
   void dispose() {
-    messageController.dispose();
+    controller.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: whatsappGreen,
-        foregroundColor: Colors.white,
         titleSpacing: 0,
         title: Row(
           children: [
             Hero(
               tag: widget.user.name,
               child: CircleAvatar(
+                radius: 18,
                 backgroundColor: widget.user.color,
                 child: Text(
                   widget.user.initials,
-                  style: const TextStyle(color: Colors.white),
+                  style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
                 ),
               ),
             ),
             const SizedBox(width: 10),
             Expanded(
-              child: Text(
-                widget.user.name,
-                style: const TextStyle(fontSize: 17),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.video_call),
-            onPressed: () {},
-          ),
-          IconButton(
-            icon: const Icon(Icons.call),
-            onPressed: () {},
-          ),
-          IconButton(
-            icon: const Icon(Icons.more_vert),
-            onPressed: () {},
-          ),
-        ],
-      ),
-
-      body: Container(
-        color: const Color(0xFFECE5DD),
-        child: Column(
-          children: [
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.all(15),
-                itemCount: messages.length,
-                itemBuilder: (context, index) {
-                  return Align(
-                    alignment: Alignment.centerRight,
-                    child: Container(
-                      margin: const EdgeInsets.only(bottom: 10),
-                      padding: const EdgeInsets.all(12),
-                      constraints: const BoxConstraints(
-                        maxWidth: 280,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFDCF8C6),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        messages[index],
-                        style: const TextStyle(fontSize: 15),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-
-            Container(
-              color: Colors.white,
-              padding: const EdgeInsets.symmetric(
-                horizontal: 8,
-                vertical: 8,
-              ),
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  IconButton(
-                    icon: const Icon(Icons.emoji_emotions_outlined),
-                    onPressed: () {},
-                  ),
-                  Expanded(
-                    child: TextField(
-                      controller: messageController,
-                      decoration: InputDecoration(
-                        hintText: 'Message',
-                        filled: true,
-                        fillColor: Colors.grey.shade100,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(25),
-                          borderSide: BorderSide.none,
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 15,
-                        ),
-                      ),
-                      onSubmitted: (_) => sendMessage(),
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: sendMessage,
-                    icon: const Icon(
-                      Icons.send,
-                      color: whatsappGreen,
-                    ),
-                  ),
+                  Text(widget.user.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  const Text('Online', style: TextStyle(fontSize: 11, color: Colors.white70)),
                 ],
               ),
             ),
           ],
         ),
+        actions: [
+          IconButton(icon: const Icon(Icons.videocam_rounded), onPressed: () {}),
+          IconButton(icon: const Icon(Icons.call_rounded), onPressed: () {}),
+          IconButton(icon: const Icon(Icons.more_vert_rounded), onPressed: () {}),
+        ],
+      ),
+      body: Column(
+        children: [
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: messages.length,
+              itemBuilder: (_, index) {
+                final isMe = index % 2 != 0;
+                return Align(
+                  alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    constraints: const BoxConstraints(maxWidth: 280),
+                    decoration: BoxDecoration(
+                      color: isMe
+                          ? AppColors.primary
+                          : (isDark ? AppColors.bubbleDark : AppColors.bubbleLight),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Text(
+                      messages[index],
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: isMe ? Colors.white : (isDark ? Colors.white : Colors.black87),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          // FEATURE: Message Input Control
+          Container(
+            padding: const EdgeInsets.all(12),
+            color: isDark ? AppColors.cardDark : Colors.white,
+            child: SafeArea(
+              child: Row(
+                children: [
+                  const Icon(Icons.sentiment_satisfied_alt_rounded, color: AppColors.primary),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: TextField(
+                      controller: controller,
+                      decoration: const InputDecoration(
+                        hintText: 'Type a message...',
+                        border: InputBorder.none,
+                      ),
+                      onSubmitted: (_) => sendMessage(),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.send_rounded, color: AppColors.primary),
+                    onPressed: sendMessage,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-// UPDATES SCREEN
-
+// ============================================================================
+// FEATURE 6: UPDATES & STATUS STORIES PAGE
+// View personal status and contact story updates
+// ============================================================================
 class UpdatesPage extends StatelessWidget {
   const UpdatesPage({super.key});
 
@@ -502,223 +554,185 @@ class UpdatesPage extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        const Text(
-          'Status',
-          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-        ),
-        ListTile(
+        const Text('Status Updates', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 10),
+        AppCardTile(
           leading: const CircleAvatar(
-            radius: 28,
-            backgroundColor: whatsappGreen,
+            backgroundColor: AppColors.primary,
             child: Icon(Icons.person, color: Colors.white),
           ),
-          title: const Text('My Status'),
+          title: 'My Status',
           subtitle: const Text('Tap to add status update'),
-          trailing: IconButton(
-            icon: const Icon(Icons.add_circle, color: lightGreen),
-            onPressed: () {},
-          ),
+          trailing: const Icon(Icons.add_circle, color: AppColors.emerald),
         ),
-        const Divider(),
-        const Text(
-          'Recent Updates',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        statusTile('Ali Ahmed', Colors.blue),
-        statusTile('Usman Afzal', Colors.orange),
-        statusTile('Hamza Khan', Colors.purple),
-        statusTile('Bilal Hassan', Colors.red),
+        const SizedBox(height: 12),
+        const Text('Recent Updates', style: TextStyle(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
+        _statusTile('Ali Ahmed', Colors.blue, '12 mins ago'),
+        _statusTile('Usman Afzal', Colors.orange, '45 mins ago'),
+        _statusTile('Hamza Khan', Colors.purple, 'Today, 10:15 AM'),
       ],
     );
   }
 
-  Widget statusTile(String name, Color color) {
-    return ListTile(
+  Widget _statusTile(String name, Color color, String time) {
+    return AppCardTile(
       leading: CircleAvatar(
-        radius: 27,
         backgroundColor: color,
         child: const Icon(Icons.person, color: Colors.white),
       ),
-      title: Text(name),
-      subtitle: const Text('Today, 12:30 PM'),
-      onTap: () {},
+      title: name,
+      subtitle: Text(time),
     );
   }
 }
 
-// COMMUNITIES SCREEN
-
+// ============================================================================
+// FEATURE 7: COMMUNITIES PAGE
+// Manage group hubs & community spaces
+// ============================================================================
 class CommunitiesPage extends StatelessWidget {
   const CommunitiesPage({super.key});
 
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.all(15),
-      children: [
-        ListTile(
-          leading: const CircleAvatar(
-            radius: 28,
-            backgroundColor: whatsappGreen,
-            child: Icon(Icons.groups, color: Colors.white),
-          ),
-          title: const Text(
-            'New Community',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          subtitle: const Text('Create a new community'),
-          onTap: () {},
+      padding: const EdgeInsets.all(16),
+      children: const [
+        AppCardTile(
+          leading: Icon(Icons.groups_rounded, color: AppColors.primary, size: 30),
+          title: 'New Community',
+          subtitle: Text('Connect your group discussions'),
         ),
-        const Divider(),
-        ListTile(
-          leading: const CircleAvatar(
-            backgroundColor: Colors.blue,
-            child: Icon(Icons.school, color: Colors.white),
-          ),
-          title: const Text('University Community'),
-          subtitle: const Text('Announcements and discussions'),
+        SizedBox(height: 12),
+        Text('Your Communities', style: TextStyle(fontWeight: FontWeight.bold)),
+        SizedBox(height: 8),
+        AppCardTile(
+          leading: CircleAvatar(backgroundColor: Colors.blue, child: Icon(Icons.school, color: Colors.white)),
+          title: 'University Community',
+          subtitle: Text('Announcements and discussions'),
         ),
-        ListTile(
-          leading: const CircleAvatar(
-            backgroundColor: Colors.orange,
-            child: Icon(Icons.work, color: Colors.white),
-          ),
-          title: const Text('Project Team'),
-          subtitle: const Text('Team discussions'),
+        AppCardTile(
+          leading: CircleAvatar(backgroundColor: Colors.orange, child: Icon(Icons.work, color: Colors.white)),
+          title: 'Project Team',
+          subtitle: Text('Team task coordination'),
         ),
       ],
     );
   }
 }
 
-// CALLS SCREEN
-
+// ============================================================================
+// FEATURE 8: CALL LOGS & CALL LINK GENERATOR
+// Manage voice & video call history
+// ============================================================================
 class CallsPage extends StatelessWidget {
   const CallsPage({super.key});
 
   @override
   Widget build(BuildContext context) {
     return ListView(
+      padding: const EdgeInsets.all(16),
       children: [
-        const ListTile(
-          leading: CircleAvatar(
-            backgroundColor: whatsappGreen,
-            child: Icon(Icons.link, color: Colors.white),
-          ),
-          title: Text('Create call link'),
-          subtitle: Text('Share a link for your WhatsApp call'),
+        const AppCardTile(
+          leading: Icon(Icons.link_rounded, color: AppColors.primary, size: 30),
+          title: 'Create Call Link',
+          subtitle: Text('Share a link for your PulseChat call'),
         ),
-        const Padding(
-          padding: EdgeInsets.all(16),
-          child: Text(
-            'Recent',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-        ),
-        callTile('Ali Ahmed', Colors.blue, Icons.call_received),
-        callTile('Usman Afzal', Colors.orange, Icons.call_made),
-        callTile('Hamza Khan', Colors.purple, Icons.call_missed),
-        callTile('Bilal Hassan', Colors.red, Icons.call_received),
+        const SizedBox(height: 12),
+        const Text('Recent Calls', style: TextStyle(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
+        _callTile('Ali Ahmed', Colors.blue, Icons.call_received_rounded, 'Today, 10:30 AM'),
+        _callTile('Usman Afzal', Colors.orange, Icons.call_made_rounded, 'Today, 9:15 AM'),
+        _callTile('Hamza Khan', Colors.purple, Icons.call_missed_rounded, 'Yesterday, 5:40 PM'),
       ],
     );
   }
 
-  Widget callTile(String name, Color color, IconData callIcon) {
-    return ListTile(
-      leading: CircleAvatar(
-        backgroundColor: color,
-        child: const Icon(Icons.person, color: Colors.white),
+  Widget _callTile(String name, Color color, IconData icon, String time) {
+    final isMissed = icon == Icons.call_missed_rounded;
+    return AppCardTile(
+      leading: CircleAvatar(backgroundColor: color, child: const Icon(Icons.person, color: Colors.white)),
+      title: name,
+      subtitle: Row(
+        children: [
+          Icon(icon, size: 14, color: isMissed ? Colors.red : AppColors.emerald),
+          const SizedBox(width: 4),
+          Text(time),
+        ],
       ),
-      title: Text(name),
-      subtitle: const Text('Today, 10:30 AM'),
-      trailing: Icon(
-        callIcon,
-        color: callIcon == Icons.call_missed
-            ? Colors.red
-            : whatsappGreen,
-      ),
+      trailing: const Icon(Icons.phone_rounded, color: AppColors.primary),
     );
   }
 }
 
-// DRAWER NAVIGATION
-
+// ============================================================================
+// FEATURE 9: NAVIGATION DRAWER
+// Access profile, settings, and dark mode toggle switch
+// ============================================================================
 class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key});
 
-  void openPage(BuildContext context, Widget page) {
+  void _nav(BuildContext context, Widget page) {
     Navigator.pop(context);
-
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => page),
-    );
+    Navigator.push(context, MaterialPageRoute(builder: (_) => page));
   }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Drawer(
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
           const UserAccountsDrawerHeader(
-            decoration: BoxDecoration(color: whatsappGreen),
-            accountName: Text('WhatsApp User'),
-            accountEmail: Text('user@example.com'),
+            decoration: BoxDecoration(color: AppColors.primary),
+            accountName: Text('PulseChat User', style: TextStyle(fontWeight: FontWeight.bold)),
+            accountEmail: Text('user@pulsechat.io'),
             currentAccountPicture: CircleAvatar(
               backgroundColor: Colors.white,
-              child: Icon(
-                Icons.person,
-                size: 40,
-                color: whatsappGreen,
-              ),
+              child: Icon(Icons.person_rounded, size: 40, color: AppColors.primary),
             ),
           ),
+          // FEATURE 10: PROFILE VIEW LINK
           ListTile(
-            leading: const Icon(Icons.person),
+            leading: const Icon(Icons.person_outline_rounded),
             title: const Text('Profile'),
-            onTap: () => openPage(context, const ProfilePage()),
+            onTap: () => _nav(context, const ProfilePage()),
           ),
           ListTile(
-            leading: const Icon(Icons.star),
+            leading: const Icon(Icons.star_outline_rounded),
             title: const Text('Starred Messages'),
-            onTap: () => openPage(
-              context,
-              const SimplePage(title: 'Starred Messages'),
-            ),
+            onTap: () => _nav(context, const SimplePage(title: 'Starred Messages')),
           ),
           ListTile(
-            leading: const Icon(Icons.devices),
+            leading: const Icon(Icons.devices_rounded),
             title: const Text('Linked Devices'),
-            onTap: () => openPage(
-              context,
-              const SimplePage(title: 'Linked Devices'),
-            ),
+            onTap: () => _nav(context, const SimplePage(title: 'Linked Devices')),
+          ),
+          // FEATURE: Theme Switcher in Drawer
+          SwitchListTile(
+            secondary: Icon(isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded),
+            title: const Text('Dark Mode'),
+            value: isDark,
+            onChanged: (val) => themeNotifier.value = val ? ThemeMode.dark : ThemeMode.light,
           ),
           ListTile(
-            leading: const Icon(Icons.settings),
+            leading: const Icon(Icons.settings_outlined),
             title: const Text('Settings'),
-            onTap: () => openPage(
-              context,
-              const SimplePage(title: 'Settings'),
-            ),
+            onTap: () => _nav(context, const SimplePage(title: 'Settings')),
           ),
           const Divider(),
           ListTile(
-            leading: const Icon(Icons.help_outline),
+            leading: const Icon(Icons.help_outline_rounded),
             title: const Text('Help'),
-            onTap: () => openPage(
-              context,
-              const SimplePage(title: 'Help'),
-            ),
+            onTap: () => _nav(context, const SimplePage(title: 'Help')),
           ),
           ListTile(
-            leading: const Icon(Icons.info_outline),
+            leading: const Icon(Icons.info_outline_rounded),
             title: const Text('About'),
-            onTap: () => openPage(
-              context,
-              const SimplePage(title: 'About'),
-            ),
+            onTap: () => _nav(context, const SimplePage(title: 'About')),
           ),
         ],
       ),
@@ -726,208 +740,143 @@ class AppDrawer extends StatelessWidget {
   }
 }
 
-// PROFILE SCREEN WITH HERO ANIMATION
-
+// ============================================================================
+// FEATURE 10: PROFILE PAGE WITH HERO ANIMATION
+// Displays user info and profile avatar
+// ============================================================================
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Profile'),
-        backgroundColor: whatsappGreen,
-        foregroundColor: Colors.white,
-      ),
+      appBar: AppBar(title: const Text('Profile')),
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Hero(
-              tag: 'profile-image',
-              child: CircleAvatar(
-                radius: 65,
-                backgroundColor: whatsappGreen,
-                child: Icon(
-                  Icons.person,
-                  size: 75,
-                  color: Colors.white,
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Hero(
+                tag: 'profile-image',
+                child: CircleAvatar(
+                  radius: 50,
+                  backgroundColor: AppColors.primary,
+                  child: Icon(Icons.person, size: 60, color: Colors.white),
                 ),
               ),
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              'WhatsApp User',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
+              const SizedBox(height: 16),
+              const Text('PulseChat User', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              const Text('Available', style: TextStyle(color: AppColors.emerald, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Go Back'),
               ),
-            ),
-            const ListTile(
-              leading: Icon(Icons.phone),
-              title: Text('+92 300 1234567'),
-            ),
-            const ListTile(
-              leading: Icon(Icons.info_outline),
-              title: Text('Available'),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Go Back'),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-// NEW CHAT SCREEN
-
+// ============================================================================
+// FEATURE 11: NEW CHAT / CONTACT SELECTOR
+// Browse available contacts to initiate a new message
+// ============================================================================
 class NewChatPage extends StatelessWidget {
   const NewChatPage({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Select Contact'),
-        backgroundColor: whatsappGreen,
-        foregroundColor: Colors.white,
-      ),
+      appBar: AppBar(title: const Text('Select Contact')),
       body: ListView(
-        children: [
-          ...chatUsers.map(
-                (user) => ListTile(
-              leading: CircleAvatar(
-                backgroundColor: user.color,
-                child: Text(
-                  user.initials,
-                  style: const TextStyle(color: Colors.white),
+        padding: const EdgeInsets.all(12),
+        children: chatUsers
+            .map(
+              (user) => AppCardTile(
+                leading: CircleAvatar(
+                  backgroundColor: user.color,
+                  child: Text(user.initials, style: const TextStyle(color: Colors.white)),
+                ),
+                title: user.name,
+                subtitle: const Text('Available'),
+                trailing: const Icon(Icons.message_outlined, color: AppColors.primary),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => ChatScreen(user: user)),
                 ),
               ),
-              title: Text(user.name),
-              subtitle: const Text('Available'),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => ChatScreen(user: user),
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
+            )
+            .toList(),
       ),
     );
   }
 }
 
-// SEARCH CHATS
-
+// ============================================================================
+// FEATURE 12: IN-APP SEARCH DELEGATE
+// Real-time search filtering across existing chat contacts
+// ============================================================================
 class ChatSearchDelegate extends SearchDelegate<String> {
   @override
   List<Widget> buildActions(BuildContext context) {
-    return [
-      IconButton(
-        icon: const Icon(Icons.clear),
-        onPressed: () => query = '',
-      ),
-    ];
+    return [IconButton(icon: const Icon(Icons.clear), onPressed: () => query = '')];
   }
 
   @override
   Widget buildLeading(BuildContext context) {
-    return IconButton(
-      icon: const Icon(Icons.arrow_back),
-      onPressed: () => close(context, ''),
-    );
+    return IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => close(context, ''));
   }
 
   @override
-  Widget buildResults(BuildContext context) {
-    final results = chatUsers.where(
-          (user) => user.name.toLowerCase().contains(query.toLowerCase()),
-    );
+  Widget buildResults(BuildContext context) => _searchList(context);
 
+  @override
+  Widget buildSuggestions(BuildContext context) => _searchList(context);
+
+  Widget _searchList(BuildContext context) {
+    final results = chatUsers.where(
+      (u) => u.name.toLowerCase().contains(query.toLowerCase()),
+    );
     return ListView(
-      children: results.map((user) {
-        return ListTile(
-          leading: CircleAvatar(
-            backgroundColor: user.color,
-            child: Text(
-              user.initials,
-              style: const TextStyle(color: Colors.white),
-            ),
-          ),
-          title: Text(user.name),
-          subtitle: Text(user.message),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => ChatScreen(user: user),
+      padding: const EdgeInsets.all(12),
+      children: results
+          .map(
+            (u) => AppCardTile(
+              leading: CircleAvatar(backgroundColor: u.color, child: Text(u.initials, style: const TextStyle(color: Colors.white))),
+              title: u.name,
+              subtitle: Text(u.message),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => ChatScreen(user: u)),
               ),
-            );
-          },
-        );
-      }).toList(),
-    );
-  }
-
-  @override
-  Widget buildSuggestions(BuildContext context) {
-    final results = chatUsers.where(
-          (user) => user.name.toLowerCase().contains(query.toLowerCase()),
-    );
-
-    return ListView(
-      children: results.map((user) {
-        return ListTile(
-          leading: CircleAvatar(
-            backgroundColor: user.color,
-            child: Text(
-              user.initials,
-              style: const TextStyle(color: Colors.white),
             ),
-          ),
-          title: Text(user.name),
-          subtitle: Text(user.message),
-          onTap: () {
-            query = user.name;
-            showResults(context);
-          },
-        );
-      }).toList(),
+          )
+          .toList(),
     );
   }
 }
 
-// REUSABLE SIMPLE PAGE
-
+// ============================================================================
+// FEATURE 13: REUSABLE SIMPLE PLACEHOLDER PAGE
+// ============================================================================
 class SimplePage extends StatelessWidget {
   final String title;
-
   const SimplePage({super.key, required this.title});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(title),
-        backgroundColor: whatsappGreen,
-        foregroundColor: Colors.white,
-      ),
+      appBar: AppBar(title: Text(title)),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(
-              '$title Page',
-              style: const TextStyle(fontSize: 24),
-            ),
-            const SizedBox(height: 20),
+            Text('$title Page', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 16),
             ElevatedButton(
               onPressed: () => Navigator.pop(context),
               child: const Text('Go Back'),
