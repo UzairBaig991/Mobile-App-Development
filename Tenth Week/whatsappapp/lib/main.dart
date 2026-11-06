@@ -6,7 +6,7 @@ void main() {
 
 // ============================================================================
 // FEATURE 1: DYNAMIC THEMING & BRAND COLOR PALETTE
-// Supports Light & Dark mode seamlessly with a single toggle
+// Uses ValueNotifier to toggle between Light Theme & Dark Theme globally
 // ============================================================================
 final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.system);
 
@@ -67,8 +67,8 @@ class MyApp extends StatelessWidget {
 }
 
 // ============================================================================
-// FEATURE 2: MAIN HOME CONTAINER & BOTTOM NAVIGATION
-// Manages primary app sections: Chats, Updates, Communities, and Calls
+// FEATURE 2: MAIN HOME SCREEN & SCREEN NAVIGATION SWITCHING
+// Manages primary app sections: ChatsPage, UpdatesPage, CommunitiesPage, CallsPage
 // ============================================================================
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -78,6 +78,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  // Navigation State: Index of currently visible bottom tab page
   int currentIndex = 0;
 
   final List<String> titles = ['PulseChat', 'Updates', 'Communities', 'Calls'];
@@ -115,7 +116,7 @@ class _HomePageState extends State<HomePage> {
                 const SnackBar(content: Text('Camera Selected')),
               ),
             ),
-            // FEATURE: Contact & Chat Search
+            // NAVIGATOR & OVERLAY MOVE: Opens ChatSearchDelegate search screen
             IconButton(
               icon: const Icon(Icons.search),
               onPressed: () => showSearch(
@@ -124,7 +125,7 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
           ],
-          // FEATURE 3: CHAT SUB-TAB FILTERING (ALL, UNREAD, FAVORITES)
+          // FEATURE 3: CHAT SUB-TAB SCREEN SWITCHING (ALL / UNREAD / FAVORITES)
           bottom: currentIndex == 0
               ? const TabBar(
                   indicatorColor: Colors.white,
@@ -141,8 +142,10 @@ class _HomePageState extends State<HomePage> {
               : null,
         ),
         drawer: const AppDrawer(),
+        // SCREEN SWITCHING: IndexedStack switches visible screen based on currentIndex
         body: IndexedStack(index: currentIndex, children: pages),
-        // FEATURE: NEW CHAT FLOATING ACTION BUTTON
+        
+        // NAVIGATOR MOVE: Pushes Navigator route to open NewChatPage screen
         floatingActionButton: FloatingActionButton.extended(
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
@@ -153,6 +156,8 @@ class _HomePageState extends State<HomePage> {
           icon: const Icon(Icons.chat_bubble_rounded),
           label: const Text('New Chat', style: TextStyle(fontWeight: FontWeight.bold)),
         ),
+        
+        // BOTTOM NAVIGATION SWITCHING: Updates currentIndex state to switch visible tab page
         bottomNavigationBar: BottomNavigationBar(
           currentIndex: currentIndex,
           type: BottomNavigationBarType.fixed,
@@ -189,7 +194,7 @@ class _HomePageState extends State<HomePage> {
 }
 
 // ============================================================================
-// DATA MODEL & SAMPLE DATA
+// DATA MODEL & SAMPLE CHAT DATA
 // ============================================================================
 class ChatUser {
   final String name;
@@ -297,8 +302,8 @@ class AppCardTile extends StatelessWidget {
 }
 
 // ============================================================================
-// FEATURE 3: CHATS PAGE WITH TAB FILTERING
-// Filter lists into: All, Unread, and Favorites
+// FEATURE 3: CHATS PAGE WITH SUB-TAB FILTERING
+// Uses TabBarView to swipe/switch between All, Unread, and Favorites lists
 // ============================================================================
 class ChatsPage extends StatelessWidget {
   const ChatsPage({super.key});
@@ -393,6 +398,7 @@ class ChatsPage extends StatelessWidget {
                 ],
               ],
             ),
+            // NAVIGATOR MOVE: Pushes Navigator route from Chats list to individual ChatScreen
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => ChatScreen(user: user)),
@@ -406,7 +412,7 @@ class ChatsPage extends StatelessWidget {
 
 // ============================================================================
 // FEATURE 5: CHAT CONVERSATION SCREEN & REAL-TIME MESSAGING
-// Allows viewing active conversation & sending new text messages
+// Opens via Navigator push when tapping a contact; sends messages in real-time
 // ============================================================================
 class ChatScreen extends StatefulWidget {
   final ChatUser user;
@@ -424,7 +430,7 @@ class _ChatScreenState extends State<ChatScreen> {
     'That sounds fantastic!',
   ];
 
-  // FEATURE: Send message state handler
+  // FEATURE: Send message state update via setState
   void sendMessage() {
     final text = controller.text.trim();
     if (text.isNotEmpty) {
@@ -509,7 +515,7 @@ class _ChatScreenState extends State<ChatScreen> {
               },
             ),
           ),
-          // FEATURE: Message Input Control
+          // FEATURE: Input text field & send button
           Container(
             padding: const EdgeInsets.all(12),
             color: isDark ? AppColors.cardDark : Colors.white,
@@ -667,15 +673,16 @@ class CallsPage extends StatelessWidget {
 }
 
 // ============================================================================
-// FEATURE 9: NAVIGATION DRAWER
-// Access profile, settings, and dark mode toggle switch
+// FEATURE 9: NAVIGATION DRAWER & SCREEN TRANSITION HELPER
+// Uses Navigator.pop to close drawer and Navigator.push to open target page
 // ============================================================================
 class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key});
 
+  // NAVIGATOR MOVE HELPER: Closes side drawer first, then navigates to target screen
   void _nav(BuildContext context, Widget page) {
-    Navigator.pop(context);
-    Navigator.push(context, MaterialPageRoute(builder: (_) => page));
+    Navigator.pop(context); // NAVIGATOR MOVE: Closes drawer overlay
+    Navigator.push(context, MaterialPageRoute(builder: (_) => page)); // NAVIGATOR MOVE: Navigates to target screen
   }
 
   @override
@@ -695,17 +702,19 @@ class AppDrawer extends StatelessWidget {
               child: Icon(Icons.person_rounded, size: 40, color: AppColors.primary),
             ),
           ),
-          // FEATURE 10: PROFILE VIEW LINK
+          // NAVIGATOR MOVE: Open ProfilePage
           ListTile(
             leading: const Icon(Icons.person_outline_rounded),
             title: const Text('Profile'),
             onTap: () => _nav(context, const ProfilePage()),
           ),
+          // NAVIGATOR MOVE: Open Starred Messages page
           ListTile(
             leading: const Icon(Icons.star_outline_rounded),
             title: const Text('Starred Messages'),
             onTap: () => _nav(context, const SimplePage(title: 'Starred Messages')),
           ),
+          // NAVIGATOR MOVE: Open Linked Devices page
           ListTile(
             leading: const Icon(Icons.devices_rounded),
             title: const Text('Linked Devices'),
@@ -718,17 +727,20 @@ class AppDrawer extends StatelessWidget {
             value: isDark,
             onChanged: (val) => themeNotifier.value = val ? ThemeMode.dark : ThemeMode.light,
           ),
+          // NAVIGATOR MOVE: Open Settings page
           ListTile(
             leading: const Icon(Icons.settings_outlined),
             title: const Text('Settings'),
             onTap: () => _nav(context, const SimplePage(title: 'Settings')),
           ),
           const Divider(),
+          // NAVIGATOR MOVE: Open Help page
           ListTile(
             leading: const Icon(Icons.help_outline_rounded),
             title: const Text('Help'),
             onTap: () => _nav(context, const SimplePage(title: 'Help')),
           ),
+          // NAVIGATOR MOVE: Open About page
           ListTile(
             leading: const Icon(Icons.info_outline_rounded),
             title: const Text('About'),
@@ -742,7 +754,7 @@ class AppDrawer extends StatelessWidget {
 
 // ============================================================================
 // FEATURE 10: PROFILE PAGE WITH HERO ANIMATION
-// Displays user info and profile avatar
+// Navigates back via Navigator.pop(context)
 // ============================================================================
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -769,6 +781,7 @@ class ProfilePage extends StatelessWidget {
               const Text('PulseChat User', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
               const Text('Available', style: TextStyle(color: AppColors.emerald, fontWeight: FontWeight.bold)),
               const SizedBox(height: 20),
+              // NAVIGATOR MOVE: Pops route to return to Home screen
               ElevatedButton(
                 onPressed: () => Navigator.pop(context),
                 child: const Text('Go Back'),
@@ -782,8 +795,8 @@ class ProfilePage extends StatelessWidget {
 }
 
 // ============================================================================
-// FEATURE 11: NEW CHAT / CONTACT SELECTOR
-// Browse available contacts to initiate a new message
+// FEATURE 11: NEW CHAT / CONTACT SELECTOR SCREEN
+// Navigates to selected contact's ChatScreen using Navigator.push
 // ============================================================================
 class NewChatPage extends StatelessWidget {
   const NewChatPage({super.key});
@@ -804,6 +817,7 @@ class NewChatPage extends StatelessWidget {
                 title: user.name,
                 subtitle: const Text('Available'),
                 trailing: const Icon(Icons.message_outlined, color: AppColors.primary),
+                // NAVIGATOR MOVE: Pushes Navigator route to open ChatScreen for selected user
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => ChatScreen(user: user)),
@@ -817,8 +831,8 @@ class NewChatPage extends StatelessWidget {
 }
 
 // ============================================================================
-// FEATURE 12: IN-APP SEARCH DELEGATE
-// Real-time search filtering across existing chat contacts
+// FEATURE 12: IN-APP SEARCH DELEGATE & OVERLAY NAVIGATION
+// Real-time search filtering; opens ChatScreen via Navigator.push on selection
 // ============================================================================
 class ChatSearchDelegate extends SearchDelegate<String> {
   @override
@@ -826,9 +840,13 @@ class ChatSearchDelegate extends SearchDelegate<String> {
     return [IconButton(icon: const Icon(Icons.clear), onPressed: () => query = '')];
   }
 
+  // NAVIGATOR MOVE: Closes search delegate overlay screen
   @override
   Widget buildLeading(BuildContext context) {
-    return IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => close(context, ''));
+    return IconButton(
+      icon: const Icon(Icons.arrow_back),
+      onPressed: () => close(context, ''), // Closes search overlay
+    );
   }
 
   @override
@@ -849,6 +867,7 @@ class ChatSearchDelegate extends SearchDelegate<String> {
               leading: CircleAvatar(backgroundColor: u.color, child: Text(u.initials, style: const TextStyle(color: Colors.white))),
               title: u.name,
               subtitle: Text(u.message),
+              // NAVIGATOR MOVE: Pushes Navigator route to open ChatScreen from search result
               onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => ChatScreen(user: u)),
@@ -862,6 +881,7 @@ class ChatSearchDelegate extends SearchDelegate<String> {
 
 // ============================================================================
 // FEATURE 13: REUSABLE SIMPLE PLACEHOLDER PAGE
+// Navigates back via Navigator.pop(context)
 // ============================================================================
 class SimplePage extends StatelessWidget {
   final String title;
@@ -877,6 +897,7 @@ class SimplePage extends StatelessWidget {
           children: [
             Text('$title Page', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
+            // NAVIGATOR MOVE: Pops route to return to previous screen
             ElevatedButton(
               onPressed: () => Navigator.pop(context),
               child: const Text('Go Back'),
